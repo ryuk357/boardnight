@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -34,6 +36,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @ORM\Column(type="string")
      */
     private $password;
+
+    /**
+     * @ORM\ManyToMany(targetEntity=Group::class, mappedBy="users")
+     */
+    private $boardgroup;
+
+    /**
+     * @ORM\OneToOne(targetEntity=Score::class, mappedBy="user", cascade={"persist", "remove"})
+     */
+    private $score;
+
+    public function __construct()
+    {
+        $this->boardgroup = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -117,5 +134,54 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         // If you store any temporary, sensitive data on the user, clear it here
         // $this->plainPassword = null;
+    }
+
+    /**
+     * @return Collection<int, Group>
+     */
+    public function getBoardgroup(): Collection
+    {
+        return $this->boardgroup;
+    }
+
+    public function addBoardgroup(Group $boardgroup): self
+    {
+        if (!$this->boardgroup->contains($boardgroup)) {
+            $this->boardgroup[] = $boardgroup;
+            $boardgroup->addUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBoardgroup(Group $boardgroup): self
+    {
+        if ($this->boardgroup->removeElement($boardgroup)) {
+            $boardgroup->removeUser($this);
+        }
+
+        return $this;
+    }
+
+    public function getScore(): ?Score
+    {
+        return $this->score;
+    }
+
+    public function setScore(?Score $score): self
+    {
+        // unset the owning side of the relation if necessary
+        if ($score === null && $this->score !== null) {
+            $this->score->setUser(null);
+        }
+
+        // set the owning side of the relation if necessary
+        if ($score !== null && $score->getUser() !== $this) {
+            $score->setUser($this);
+        }
+
+        $this->score = $score;
+
+        return $this;
     }
 }
